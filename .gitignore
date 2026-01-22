@@ -1,0 +1,46 @@
+# ==========================================
+# Dataset
+# ==========================================
+data/
+*.csv
+*.parquet
+*.h5
+*.dat
+
+.env
+config.json
+secrets.py
+credentials/
+
+# ==========================================
+# Python environment
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ipynb_checkpoints/
+
+# venv
+venv/
+env/
+.venv/
+conda-env/
+
+# ==========================================
+# Logs & Results
+# ==========================================
+logs/
+*.log
+backtest/results/
+plots/
+*.png
+*.pdf
+
+# ==========================================
+# Others
+# ==========================================
+.DS_Store
+.vscode/
+.idea/
+*.swp
