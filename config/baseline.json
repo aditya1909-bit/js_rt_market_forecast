@@ -1,0 +1,14 @@
+{
+  "max_parts": 2,
+  "valid_days": 5,
+  "alpha": 1.0,
+  "feature_prefix": "feature_",
+  "target": "responder_6",
+  "weight_col": "weight",
+  "drop_all_null_features": true,
+  "num_workers": 4,
+  "progress": true,
+  "report_dir": "outputs",
+  "plot": true,
+  "plot_sample": 20000
+}

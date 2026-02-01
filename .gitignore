@@ -33,6 +33,9 @@ conda-env/
 logs/
 *.log
 backtest/results/
+models/
+outputs/
+submissions/
 plots/
 *.png
 *.pdf
