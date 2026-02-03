@@ -30,6 +30,67 @@ def load_feature_list(path: str | Path) -> list[str]:
     return [item for item in parts if item]
 
 
+def load_model_payload(path: str | Path) -> dict:
+    with Path(path).open("rb") as f:
+        payload = pickle.load(f)
+    if "model" not in payload:
+        raise ValueError("Model payload is missing the 'model' key.")
+    return payload
+
+
+def resolve_target_name(
+    target_arg: str | None,
+    config_target: str | None,
+    payload_target: str | None,
+) -> str:
+    if target_arg:
+        return target_arg
+    if config_target:
+        return config_target
+    if payload_target:
+        return payload_target
+    return TARGET_COL
+
+
+def select_feature_columns(
+    test_df: pd.DataFrame,
+    feature_cols: list[str] | None,
+    feature_prefix: str,
+    feature_list: str | None,
+) -> list[str]:
+    if feature_list:
+        feature_cols = load_feature_list(feature_list)
+    if feature_cols is None:
+        feature_cols = sorted([col for col in test_df.columns if col.startswith(feature_prefix)])
+
+    missing = [col for col in feature_cols if col not in test_df.columns]
+    if missing:
+        raise ValueError(f"Missing {len(missing)} feature columns in test data.")
+    return feature_cols
+
+
+def generate_submission(
+    model,
+    feature_cols: list[str] | None,
+    data_dir: Path,
+    feature_prefix: str,
+    feature_list: str | None,
+    num_workers: int,
+    show_progress: bool,
+    target: str,
+) -> pd.DataFrame:
+    test_df = load_test(data_dir=data_dir, num_workers=num_workers, show_progress=show_progress)
+    feature_cols = select_feature_columns(test_df, feature_cols, feature_prefix, feature_list)
+    preds = model.predict(test_df[feature_cols])
+
+    if "row_id" in test_df.columns:
+        row_ids = test_df["row_id"]
+    else:
+        row_ids = pd.Series(range(len(test_df)), name="row_id")
+
+    return pd.DataFrame({"row_id": row_ids, target: preds})
+
+
 def main() -> None:
     args = parse_args()
     config = load_json_config(args.config)
@@ -40,37 +101,30 @@ def main() -> None:
     output = resolve_arg(args.output, config, "output", "submissions/mock_submission.csv")
     feature_prefix = resolve_arg(args.feature_prefix, config, "feature_prefix", FEATURE_PREFIX)
     feature_list = resolve_arg(args.feature_list, config, "feature_list", None)
-    target = resolve_arg(args.target, config, "target", TARGET_COL)
+    config_target = config.get("target") if isinstance(config, dict) else None
     num_workers = resolve_arg(args.num_workers, config, "num_workers", 1)
     show_progress = resolve_arg(args.progress, config, "progress", True)
 
     if not model_path_value:
         raise ValueError("Model path is required. Use --model or set model in the config.")
 
-    with Path(model_path_value).open("rb") as f:
-        payload = pickle.load(f)
+    payload = load_model_payload(model_path_value)
 
     model = payload["model"]
     feature_cols = payload.get("features")
+    payload_target = payload.get("target")
+    target = resolve_target_name(args.target, config_target, payload_target)
 
-    test_df = load_test(data_dir=data_dir, num_workers=num_workers, show_progress=show_progress)
-    if feature_list:
-        feature_cols = load_feature_list(feature_list)
-    if feature_cols is None:
-        feature_cols = sorted([col for col in test_df.columns if col.startswith(feature_prefix)])
-
-    missing = [col for col in feature_cols if col not in test_df.columns]
-    if missing:
-        raise ValueError(f"Missing {len(missing)} feature columns in test data.")
-
-    preds = model.predict(test_df[feature_cols])
-
-    if "row_id" in test_df.columns:
-        row_ids = test_df["row_id"]
-    else:
-        row_ids = pd.Series(range(len(test_df)), name="row_id")
-
-    output_df = pd.DataFrame({"row_id": row_ids, target: preds})
+    output_df = generate_submission(
+        model=model,
+        feature_cols=feature_cols,
+        data_dir=data_dir,
+        feature_prefix=feature_prefix,
+        feature_list=feature_list,
+        num_workers=num_workers,
+        show_progress=show_progress,
+        target=target,
+    )
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_df.to_csv(output_path, index=False)

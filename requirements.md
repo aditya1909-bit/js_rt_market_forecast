@@ -1,5 +1,6 @@
 # Requirements
 
+## Core
 numpy
 pandas
 pyarrow
@@ -9,3 +10,8 @@ matplotlib
 seaborn
 jupyter
 kaggle
+
+## Optional models
+lightgbm
+xgboost
+catboost

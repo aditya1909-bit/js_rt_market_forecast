@@ -28,5 +28,29 @@ python -m src.train --config config/baseline.json --model-out models/ridge.pkl
 python -m src.predict --config config/baseline.json --model models/ridge.pkl --output submissions/mock_submission.csv
 ```
 
+## Models
+Supported model names (see `src/models.py`):
+- `ridge`
+- `elasticnet`
+- `hgb` (HistGradientBoosting)
+- `rf` (RandomForest)
+- `extra_trees`
+- `lgbm` (LightGBM, optional dependency)
+- `xgb` (XGBoost, optional dependency)
+- `cat` (CatBoost, optional dependency)
+
+You can pass model params as a JSON string or a JSON file path:
+
+```bash
+python -m src.train --config config/baseline.json --model hgb --model-params '{"max_iter": 500, "learning_rate": 0.05}'
+```
+
+## End-to-End
+Train and generate a submission in one step:
+
+```bash
+python -m src.e2e --config config/baseline.json --model hgb --model-out models/hgb.pkl --output submissions/hgb_submission.csv
+```
+
 ## Notes
 This repo intentionally avoids documenting competition rules here; see the Kaggle page for official details.
